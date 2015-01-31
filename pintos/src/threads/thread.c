@@ -62,7 +62,7 @@ bool thread_mlfqs;
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
-static struct thread *running_thread (void);
+struct thread *running_thread (void);
 static struct thread *next_thread_to_run (void);
 static void init_thread (struct thread *, const char *name, int priority);
 static bool is_thread (struct thread *) UNUSED;
@@ -70,6 +70,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+void thread_wakeup_from_sleep(struct thread *, void *aux);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -123,7 +124,7 @@ void
 thread_tick (void) 
 {
   struct thread *t = thread_current ();
-
+  thread_foreach (thread_wakeup_from_sleep, 0);
   /* Update statistics. */
   if (t == idle_thread)
     idle_ticks++;
@@ -331,6 +332,22 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+void
+thread_wakeup_from_sleep(struct thread *t, void *aux) {
+  
+  if (t->blocked_by_sleep){
+      if (t->ticks_before_unblock <= 0) {
+	  t->ticks_before_unblock = -1;     	   
+	  t->blocked_by_sleep = false;
+          thread_unblock(t); 
+     }
+     else {
+         t->ticks_before_unblock--;
+     }
+  }
+
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
@@ -463,6 +480,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->ticks_before_unblock = -1;
+  t->blocked_by_sleep = false;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

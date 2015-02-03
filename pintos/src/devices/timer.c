@@ -90,7 +90,6 @@ void
 timer_sleep (int64_t ticks) 
 {
   if (ticks > 0) {
-  printf(" In timer sleep function ");
  // int64_t start = timer_ticks ();
   enum intr_level old_level = intr_disable ();
   ASSERT (intr_get_level () == INTR_OFF);

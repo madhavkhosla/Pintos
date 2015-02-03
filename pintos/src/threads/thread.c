@@ -71,7 +71,7 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 void thread_wakeup_from_sleep(struct thread *, void *aux);
-
+bool priority_comparator(struct list_elem *, struct list_elem *, void *aux);
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -336,16 +336,13 @@ void
 thread_wakeup_from_sleep(struct thread *t, void *aux) {
   
   if (t->blocked_by_sleep){
-      if (t->ticks_before_unblock <= 0) {
-	  t->ticks_before_unblock = -1;     	   
+         t->ticks_before_unblock--;
+      if (t->ticks_before_unblock == 0) {
+	  t->ticks_before_unblock = 0;     	   
 	  t->blocked_by_sleep = false;
           thread_unblock(t); 
      }
-     else {
-         t->ticks_before_unblock--;
-     }
   }
-
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
@@ -480,7 +477,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-  t->ticks_before_unblock = -1;
+  t->ticks_before_unblock = 0;
   t->blocked_by_sleep = false;
 
   old_level = intr_disable ();
@@ -572,6 +569,7 @@ static void
 schedule (void) 
 {
   struct thread *cur = running_thread ();
+  list_sort(&ready_list,(list_less_func *) &priority_comparator, 0);
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
 
@@ -583,6 +581,19 @@ schedule (void)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
 }
+
+bool
+priority_comparator (struct list_elem *elem, struct list_elem *e, void *aux) {
+
+  struct thread *insert_thread = list_entry (elem, struct thread, elem);
+  struct thread *list_thread = list_entry (e, struct thread, elem);
+  if (insert_thread->priority > list_thread->priority) {
+    return true;
+  }
+  return false;
+}
+
+
 
 /* Returns a tid to use for a new thread. */
 static tid_t

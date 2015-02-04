@@ -138,6 +138,7 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+  
 }
 
 /* Prints thread statistics. */
@@ -201,7 +202,8 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
+  thread_yield();
+ 
   return tid;
 }
 
@@ -238,7 +240,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, &priority_comparator, 0);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -309,7 +311,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, &priority_comparator, 0);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -350,6 +352,13 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  if (!list_empty(&ready_list)) {
+     struct list_elem *next_list_elem = list_front (&ready_list);
+     if (priority_comparator (next_list_elem ,&thread_current()->elem, 0)) {
+//	printf("Inside ");
+	thread_yield();
+     }
+  }
 }
 
 /* Returns the current thread's priority. */
@@ -569,17 +578,17 @@ static void
 schedule (void) 
 {
   struct thread *cur = running_thread ();
-  list_sort(&ready_list,(list_less_func *) &priority_comparator, 0);
-  struct thread *next = next_thread_to_run ();
-  struct thread *prev = NULL;
+//  list_sort(&ready_list,(list_less_func *) &priority_comparator, 0);
+//  struct list_elem *next_list_elem = list_front (&ready_list);
+   struct thread *next = next_thread_to_run ();
+   struct thread *prev = NULL;
+   ASSERT (intr_get_level () == INTR_OFF);
+   ASSERT (cur->status != THREAD_RUNNING);
+   ASSERT (is_thread (next));
 
-  ASSERT (intr_get_level () == INTR_OFF);
-  ASSERT (cur->status != THREAD_RUNNING);
-  ASSERT (is_thread (next));
-
-  if (cur != next)
-    prev = switch_threads (cur, next);
-  thread_schedule_tail (prev);
+   if (cur != next)
+     prev = switch_threads (cur, next);
+   thread_schedule_tail (prev);
 }
 
 bool

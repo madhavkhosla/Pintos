@@ -92,6 +92,7 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
+  list_init (&lock_list);
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
@@ -485,6 +486,7 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->original_priority = priority;
   t->magic = THREAD_MAGIC;
   t->ticks_before_unblock = 0;
   t->blocked_by_sleep = false;

@@ -352,15 +352,29 @@ thread_wakeup_from_sleep(struct thread *t, void *aux) {
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
-  if (!list_empty(&ready_list)) {
+ struct list_elem *lock_list_elem;
+ bool can_change_priority = true;
+ for (lock_list_elem = list_begin(&lock_list); 
+      lock_list_elem != list_end (&lock_list);
+      lock_list_elem = list_next(lock_list_elem)) {
+      struct lock *lock_thread = list_entry(lock_list_elem, struct lock, elem);
+         if (lock_thread->holder == thread_current()) {
+                can_change_priority = false;
+     }
+   }
+  if (can_change_priority) {
+      thread_current ()->priority = new_priority;
+     }
+  thread_current()->original_priority = new_priority;
+
+if (!list_empty(&ready_list)) {
      struct list_elem *next_list_elem = list_front (&ready_list);
      if (priority_comparator (next_list_elem ,&thread_current()->elem, 0)) {
-//	printf("Inside ");
 	thread_yield();
+//	printf("Inside ");
      }
   }
-}
+} 
 
 /* Returns the current thread's priority. */
 int

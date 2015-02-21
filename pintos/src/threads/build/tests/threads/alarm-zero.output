@@ -1,8 +1,8 @@
-qemu -hda /tmp/Jsi07KLyue.dsk -m 4 -net none -nographic -monitor null
+qemu -hda /tmp/Nm6kJIcwwe.dsk -m 4 -net none -nographic -monitor null
 PiLo hda1
 Loading.........
 Kernel command line: -q run alarm-zero
-Before thread_initAfter thread_initAFTER CONSOLEPintos booting with 4,088 kB RAM...
+Pintos booting with 4,088 kB RAM...
 382 pages available in kernel pool.
 382 pages available in user pool.
 Calibrating timer...  523,468,800 loops/s.
@@ -14,6 +14,6 @@ Executing 'alarm-zero':
 Execution of 'alarm-zero' complete.
 Timer: 26 ticks
 Thread: 0 idle ticks, 26 kernel ticks, 0 user ticks
-Console: 433 characters output
+Console: 385 characters output
 Keyboard: 0 keys pressed
 Powering off...
